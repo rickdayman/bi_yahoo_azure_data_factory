@@ -1,0 +1,37 @@
+{
+	"name": "ds_azuresqldatabase",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_azuresqldatabase",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"server_name": "azrickdaymanserver.database.windows.net",
+				"database_name": "YAHOO"
+			}
+		},
+		"parameters": {
+			"schema_name": {
+				"type": "string",
+				"defaultValue": "etl"
+			},
+			"table_name": {
+				"type": "string",
+				"defaultValue": "dw_processing"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().schema_name",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().table_name",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

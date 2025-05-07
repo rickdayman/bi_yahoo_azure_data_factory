@@ -1,0 +1,21 @@
+{
+	"name": "ds_etl_dw_processing_table",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_azuresqldatabase",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"server_name": "azrickdaymanserver.database.windows.net",
+				"database_name": "YAHOO"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "etl",
+			"table": "dw_processing"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

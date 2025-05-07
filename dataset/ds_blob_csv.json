@@ -1,0 +1,32 @@
+{
+	"name": "ds_blob_csv",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_azureblobstorage",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"storage_container": {
+				"type": "string",
+				"defaultValue": "azrickdaymanyahoo"
+			}
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"container": {
+					"value": "@dataset().storage_container",
+					"type": "Expression"
+				}
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

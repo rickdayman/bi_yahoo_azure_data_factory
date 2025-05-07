@@ -1,0 +1,686 @@
+{
+	"name": "pl_etl_dw_processing",
+	"properties": {
+		"activities": [
+			{
+				"name": "lookup etl_dw_processing table",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.1:00:00",
+					"retry": 3,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT\t\t*\n\t\t\t,ISNULL((SELECT MAX(run_id) + 1 AS run_id FROM etl.dw_logging), 1) AS run_id\nFROM\t\tetl.dw_processing\n--WHERE       run_order <= 2\nORDER BY\trun_order",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_etl_dw_processing_table",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Iterate over dw_processing table",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "lookup etl_dw_processing table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('lookup etl_dw_processing table').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Activity type",
+							"type": "Switch",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"on": {
+									"value": "@item().activity_type",
+									"type": "Expression"
+								},
+								"cases": [
+									{
+										"value": "Query",
+										"activities": [
+											{
+												"name": "run logging query start",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.1:00:00",
+													"retry": 3,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[etl].[logging_step]",
+													"storedProcedureParameters": {
+														"run_id": {
+															"value": {
+																"value": "@item().run_id",
+																"type": "Expression"
+															},
+															"type": "Int32"
+														},
+														"step_id": {
+															"value": {
+																"value": "@item().run_order",
+																"type": "Expression"
+															},
+															"type": "Int16"
+														},
+														"step_name": {
+															"value": {
+																"value": "@item().activity_type",
+																"type": "Expression"
+															},
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azuresqldatabase",
+													"type": "LinkedServiceReference",
+													"parameters": {
+														"server_name": "azrickdaymanserver.database.windows.net",
+														"database_name": "YAHOO"
+													}
+												}
+											},
+											{
+												"name": "Query",
+												"type": "Copy",
+												"dependsOn": [
+													{
+														"activity": "run logging query start",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.1:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "AzureSqlSource",
+														"sqlReaderQuery": {
+															"value": "@item().source_details",
+															"type": "Expression"
+														},
+														"queryTimeout": "02:00:00",
+														"partitionOption": "None"
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "@{concat('DROP TABLE IF EXISTS ',item().destination_table_name)}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"tableOption": "autoCreate",
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_azuresqldatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"schema_name": "etl",
+															"table_name": "dw_processing"
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_azuresqldatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"schema_name": "@split(item().destination_table_name,'.')[0]",
+															"table_name": "@split(item().destination_table_name,'.')[1]"
+														}
+													}
+												]
+											},
+											{
+												"name": "run logging query end",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "Query",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.1:00:00",
+													"retry": 3,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[etl].[logging_step]",
+													"storedProcedureParameters": {
+														"run_id": {
+															"value": {
+																"value": "@item().run_id",
+																"type": "Expression"
+															},
+															"type": "Int32"
+														},
+														"step_id": {
+															"value": {
+																"value": "@item().run_order",
+																"type": "Expression"
+															},
+															"type": "Int16"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azuresqldatabase",
+													"type": "LinkedServiceReference",
+													"parameters": {
+														"server_name": "azrickdaymanserver.database.windows.net",
+														"database_name": "YAHOO"
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "AzureFunction",
+										"activities": [
+											{
+												"name": "run logging azf start",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.1:00:00",
+													"retry": 3,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[etl].[logging_step]",
+													"storedProcedureParameters": {
+														"run_id": {
+															"value": {
+																"value": "@item().run_id",
+																"type": "Expression"
+															},
+															"type": "Int32"
+														},
+														"step_id": {
+															"value": {
+																"value": "@item().run_order",
+																"type": "Expression"
+															},
+															"type": "Int16"
+														},
+														"step_name": {
+															"value": {
+																"value": "@concat('Run azure function ' ,item().source_details)",
+																"type": "Expression"
+															},
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azuresqldatabase",
+													"type": "LinkedServiceReference",
+													"parameters": {
+														"server_name": "azrickdaymanserver.database.windows.net",
+														"database_name": "YAHOO"
+													}
+												}
+											},
+											{
+												"name": "Azure Function",
+												"type": "AzureFunctionActivity",
+												"dependsOn": [
+													{
+														"activity": "run logging azf start",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.1:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"functionName": {
+														"value": "@item().source_details",
+														"type": "Expression"
+													},
+													"method": "GET"
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azurefunction",
+													"type": "LinkedServiceReference",
+													"parameters": {
+														"function_app_url": {
+															"value": "@item().source_server_name",
+															"type": "Expression"
+														}
+													}
+												}
+											},
+											{
+												"name": "run logging azf end",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "Azure Function",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.1:00:00",
+													"retry": 3,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[etl].[logging_step]",
+													"storedProcedureParameters": {
+														"run_id": {
+															"value": {
+																"value": "@item().run_id",
+																"type": "Expression"
+															},
+															"type": "Int32"
+														},
+														"step_id": {
+															"value": {
+																"value": "@item().run_order",
+																"type": "Expression"
+															},
+															"type": "Int16"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azuresqldatabase",
+													"type": "LinkedServiceReference",
+													"parameters": {
+														"server_name": "azrickdaymanserver.database.windows.net",
+														"database_name": "YAHOO"
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "BlobCSV",
+										"activities": [
+											{
+												"name": "run logging blob csv start",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.1:00:00",
+													"retry": 3,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[etl].[logging_step]",
+													"storedProcedureParameters": {
+														"run_id": {
+															"value": {
+																"value": "@item().run_id",
+																"type": "Expression"
+															},
+															"type": "Int32"
+														},
+														"step_id": {
+															"value": {
+																"value": "@item().run_order",
+																"type": "Expression"
+															},
+															"type": "Int16"
+														},
+														"step_name": {
+															"value": {
+																"value": "@concat('Load csv ' ,item().source_details)",
+																"type": "Expression"
+															},
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azuresqldatabase",
+													"type": "LinkedServiceReference",
+													"parameters": {
+														"server_name": "azrickdaymanserver.database.windows.net",
+														"database_name": "YAHOO"
+													}
+												}
+											},
+											{
+												"name": "Blob csv",
+												"type": "Copy",
+												"dependsOn": [
+													{
+														"activity": "run logging blob csv start",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.1:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"storeSettings": {
+															"type": "AzureBlobStorageReadSettings",
+															"recursive": true,
+															"wildcardFileName": {
+																"value": "@item().source_details",
+																"type": "Expression"
+															},
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": "TRUNCATE TABLE stg.yfinance_daily_stock_prices",
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"tableOption": "autoCreate",
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_blob_csv",
+														"type": "DatasetReference",
+														"parameters": {
+															"storage_container": "@item().source_database_name"
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_azuresqldatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"schema_name": {
+																"value": "@split(item().destination_table_name,'.')[0]",
+																"type": "Expression"
+															},
+															"table_name": "@split(item().destination_table_name,'.')[1]"
+														}
+													}
+												]
+											},
+											{
+												"name": "run logging blob csv end",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "Blob csv",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.1:00:00",
+													"retry": 3,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[etl].[logging_step]",
+													"storedProcedureParameters": {
+														"run_id": {
+															"value": {
+																"value": "@item().run_id",
+																"type": "Expression"
+															},
+															"type": "Int32"
+														},
+														"step_id": {
+															"value": {
+																"value": "@item().run_order",
+																"type": "Expression"
+															},
+															"type": "Int16"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azuresqldatabase",
+													"type": "LinkedServiceReference",
+													"parameters": {
+														"server_name": "azrickdaymanserver.database.windows.net",
+														"database_name": "YAHOO"
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "StoredProcedure",
+										"activities": [
+											{
+												"name": "run logging sp start",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.1:00:00",
+													"retry": 3,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[etl].[logging_step]",
+													"storedProcedureParameters": {
+														"run_id": {
+															"value": {
+																"value": "@item().run_id",
+																"type": "Expression"
+															},
+															"type": "Int32"
+														},
+														"step_id": {
+															"value": {
+																"value": "@item().run_order",
+																"type": "Expression"
+															},
+															"type": "Int16"
+														},
+														"step_name": {
+															"value": {
+																"value": "@concat('Run proc ' ,item().source_details)",
+																"type": "Expression"
+															},
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azuresqldatabase",
+													"type": "LinkedServiceReference",
+													"parameters": {
+														"server_name": "azrickdaymanserver.database.windows.net",
+														"database_name": "YAHOO"
+													}
+												}
+											},
+											{
+												"name": "Run SP",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "run logging sp start",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.1:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": {
+														"value": "@item().source_details",
+														"type": "Expression"
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azuresqldatabase",
+													"type": "LinkedServiceReference",
+													"parameters": {
+														"server_name": "azrickdaymanserver.database.windows.net",
+														"database_name": "YAHOO"
+													}
+												}
+											},
+											{
+												"name": "run logging sp end",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "Run SP",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.1:00:00",
+													"retry": 3,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[etl].[logging_step]",
+													"storedProcedureParameters": {
+														"run_id": {
+															"value": {
+																"value": "@item().run_id",
+																"type": "Expression"
+															},
+															"type": "Int32"
+														},
+														"step_id": {
+															"value": {
+																"value": "@item().run_order",
+																"type": "Expression"
+															},
+															"type": "Int16"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_azuresqldatabase",
+													"type": "LinkedServiceReference",
+													"parameters": {
+														"server_name": "azrickdaymanserver.database.windows.net",
+														"database_name": "YAHOO"
+													}
+												}
+											}
+										]
+									}
+								]
+							}
+						}
+					]
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2025-05-07T23:15:43Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

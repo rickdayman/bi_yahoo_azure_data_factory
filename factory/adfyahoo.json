@@ -1,0 +1,9 @@
+{
+	"name": "adfyahoo",
+	"location": "australiaeast",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "6394756a-2e8b-4498-ad33-1921b226e942",
+		"tenantId": "4b5579be-bdca-4531-99cd-2e69a05726cd"
+	}
+}

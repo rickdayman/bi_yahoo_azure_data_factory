@@ -1,0 +1,34 @@
+{
+	"name": "ls_azuresqldatabase",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"parameters": {
+			"server_name": {
+				"type": "string",
+				"defaultValue": "azrickdaymanserver.database.windows.net"
+			},
+			"database_name": {
+				"type": "string",
+				"defaultValue": "YAHOO"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"server": "@{linkedService().server_name}",
+			"database": "@{linkedService().database_name}",
+			"encrypt": "mandatory",
+			"trustServerCertificate": false,
+			"authenticationType": "SQL",
+			"userName": "azrickdaymanlogin",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "ls_azurekeyvault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "kvazrickdaymansqlstocks"
+			}
+		}
+	}
+}
