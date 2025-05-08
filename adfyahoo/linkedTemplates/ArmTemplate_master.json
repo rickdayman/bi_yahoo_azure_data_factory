@@ -1,0 +1,91 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "adfyahoo"
+		},
+		"ls_azurefunction_functionKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'functionKey' of 'ls_azurefunction'"
+		},
+		"ls_azureblobstorage_properties_typeProperties_connectionString_secretName": {
+			"type": "string",
+			"defaultValue": "kvazrickdaymanstorage"
+		},
+		"ls_azurefunction_properties_typeProperties_functionAppUrl": {
+			"type": "string",
+			"defaultValue": "@{linkedService().function_app_url}"
+		},
+		"ls_azurekeyvault_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://azrickdaymankeyvault.vault.azure.net/"
+		},
+		"ls_azuresqldatabase_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "@{linkedService().server_name}"
+		},
+		"ls_azuresqldatabase_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "@{linkedService().database_name}"
+		},
+		"ls_azuresqldatabase_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "azrickdaymanlogin"
+		},
+		"containerUri": {
+			"type": "string",
+			"metadata": "URI to storage account containing linked ARM templates"
+		},
+		"containerSasToken": {
+			"type": "string",
+			"metadata": "Sas token to storage account containing linked ARM templates"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "adfyahoo_ArmTemplate_0",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_0.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"ls_azurefunction_functionKey": {
+						"value": "[parameters('ls_azurefunction_functionKey')]"
+					},
+					"ls_azurefunction_properties_typeProperties_functionAppUrl": {
+						"value": "[parameters('ls_azurefunction_properties_typeProperties_functionAppUrl')]"
+					},
+					"ls_azurekeyvault_properties_typeProperties_baseUrl": {
+						"value": "[parameters('ls_azurekeyvault_properties_typeProperties_baseUrl')]"
+					},
+					"ls_azureblobstorage_properties_typeProperties_connectionString_secretName": {
+						"value": "[parameters('ls_azureblobstorage_properties_typeProperties_connectionString_secretName')]"
+					},
+					"ls_azuresqldatabase_properties_typeProperties_server": {
+						"value": "[parameters('ls_azuresqldatabase_properties_typeProperties_server')]"
+					},
+					"ls_azuresqldatabase_properties_typeProperties_database": {
+						"value": "[parameters('ls_azuresqldatabase_properties_typeProperties_database')]"
+					},
+					"ls_azuresqldatabase_properties_typeProperties_userName": {
+						"value": "[parameters('ls_azuresqldatabase_properties_typeProperties_userName')]"
+					}
+				}
+			},
+			"dependsOn": []
+		}
+	]
+}

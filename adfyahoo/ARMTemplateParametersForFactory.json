@@ -1,0 +1,30 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "adfyahoo"
+		},
+		"ls_azurefunction_functionKey": {
+			"value": ""
+		},
+		"ls_azureblobstorage_properties_typeProperties_connectionString_secretName": {
+			"value": "kvazrickdaymanstorage"
+		},
+		"ls_azurefunction_properties_typeProperties_functionAppUrl": {
+			"value": "@{linkedService().function_app_url}"
+		},
+		"ls_azurekeyvault_properties_typeProperties_baseUrl": {
+			"value": "https://azrickdaymankeyvault.vault.azure.net/"
+		},
+		"ls_azuresqldatabase_properties_typeProperties_server": {
+			"value": "@{linkedService().server_name}"
+		},
+		"ls_azuresqldatabase_properties_typeProperties_database": {
+			"value": "@{linkedService().database_name}"
+		},
+		"ls_azuresqldatabase_properties_typeProperties_userName": {
+			"value": "azrickdaymanlogin"
+		}
+	}
+}
