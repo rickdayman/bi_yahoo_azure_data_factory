@@ -17,7 +17,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "SELECT\t\t*\n\t\t\t,ISNULL((SELECT MAX(run_id) + 1 AS run_id FROM etl.dw_logging), 1) AS run_id\nFROM\t\tetl.dw_processing\nWHERE       run_order <= 2\nORDER BY\trun_order",
+						"sqlReaderQuery": "SELECT\t\t*\n\t\t\t,ISNULL((SELECT MAX(run_id) + 1 AS run_id FROM etl.dw_logging), 1) AS run_id\nFROM\t\tetl.dw_processing\n--WHERE       run_order <= 2\nORDER BY\trun_order",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
